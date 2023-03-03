@@ -26,11 +26,7 @@ jobs:
       - uses: actions/checkout@v3
       
       - name: Setup Ansible
-        uses: ansible-community/ansible-test-gh-action@release/v1
-        with:
-          ansible-core-version: stable-2.14
-          target-python-version: 3.9
-          controller-python-version: auto  
+        run: python3 -m pip install --user ansible
         
       - name: Check
         run: ansible --version
