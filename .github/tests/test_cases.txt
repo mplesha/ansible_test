@@ -1,0 +1,4 @@
+.planned_values.root_module.resources[0].provider_name;virtualbox;provider
+.planned_values.root_module.resources[0].values.cpus;2;cpus
+.planned_values.root_module.resources[0].values.image;bionic64;image
+.planned_values.root_module.resources[0].values.memory;512 mib;memory
