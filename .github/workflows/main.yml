@@ -29,4 +29,7 @@ jobs:
         run: python3 -m pip install --user ansible
         
       - name: Check
-        run: ansible --version
+        run: |
+          ansible --version
+          ls /home/runner/.ansible/plugins/modules
+      
