@@ -31,5 +31,5 @@ jobs:
       - name: Check
         run: |
           ansible --version
-          ls /home/runner/.ansible/plugins/modules
+          ls /usr/share/ansible/plugins/modules
       
