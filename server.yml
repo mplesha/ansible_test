@@ -1,0 +1,219 @@
+---
+- hosts: server
+  become: yes
+  vars:
+    - username: root
+# user
+    - phpver: 8.2
+    - mysql_laravel_password: laravel 
+# laravel
+  tasks:
+    - name: message
+      debug:
+        msg: "Create task to deploy DB server and App server with Laravel "
+
+
+    - name: Install Apache
+      ansible.builtin.apt:
+        name: 
+           - apache2
+           - ufw
+           - python3-dev
+           - libmysqlclient-dev
+           - python3-mysqldb
+        state: latest
+
+
+    - name: Add repository
+      apt_repository:
+        repo: ppa:ondrej/php
+        state: present
+
+    - name: update 
+      ansible.builtin.apt: 
+          update_cache: yes
+    - name: Installation of PHP8.1 and its dependencies
+      ansible.builtin.apt:
+              name:
+                - php8.2
+                - php8.2-mysql
+                - libapache2-mod-php
+                - php8.2-imap
+                - php8.2-ldap
+                - php8.2-xml
+                - php8.2-fpm
+                - php8.2-curl
+                - php8.2-mbstring
+                - php8.2-zip
+                
+              state: present       
+
+
+    - name: Ufw
+      ufw:
+        rule: allow
+        port: "80"
+        proto: tcp 
+
+    - name: Clone a github repository
+      git:
+           repo: https://github.com/mentorchita/DevOpsPract.git
+           dest: /home/user/proj
+           clone: yes
+           update: yes
+
+    - name: Copy project to server    
+      become: yes
+      copy:
+         src: /home/user/proj/
+         dest: /var/www/html
+         owner: user
+         group: user
+         mode: '0755'
+         remote_src: true
+
+
+
+    - name: Download and install Composer
+      shell: curl -sS https://getcomposer.org/installer | php
+      args:
+        chdir: /usr/src/
+        creates: /usr/local/bin/composer
+        warn: false
+      become: yes
+
+# uncoment this when first run
+    - name: rename composer executable
+      shell: mv /usr/src/composer.phar /usr/local/bin/composer
+      become: yes
+
+    - name: set permissions for composer file
+      file:
+        path: /usr/local/bin/composer
+        mode: a+x
+        state: file
+      become: yes
+
+    
+  
+    - name: install laravel dependencies by proj
+
+      become: false
+      composer:
+        command: install
+        working_dir: /var/www/html
+      tags: [ 'composer:install' ]
+
+    - name: copy env file
+      copy:
+          src: /var/www/html/.env.example
+          remote_src: true
+          dest: /var/www/html/.env
+          owner: www-data
+          group: www-data
+          mode: '0644'
+      become: yes
+
+    - name: change database host
+      replace:
+        path: /var/www/html/.env
+        regexp: 'DB_HOST=127.0.0.1'
+        replace: 'DB_HOST=192.168.56.107'
+      tags:
+        - replace hosts
+
+
+    - name: change database name
+      replace:
+        path: /var/www/html/.env
+        regexp: 'DB_DATABASE=laravel'
+        replace: 'DB_DATABASE=laravel'
+      tags:
+        - replace
+
+    - name: change database user
+      replace:
+        path: /var/www/html/.env
+        regexp: 'DB_USERNAME=root'
+        replace: 'DB_USERNAME=laraver_rw'
+      tags:
+        - replace
+    - name: change database password
+      replace:
+        path: /var/www/html/.env
+        regexp: "DB_PASSWORD="
+        replace: "DB_PASSWORD={{mysql_laravel_password}}"
+      tags:
+        - replace
+
+    - name: copy apache config
+      copy:
+        src: myapp.conf
+        dest: /etc/apache2/sites-available/myapp.conf
+        owner: root
+        group: root
+        mode: '0644'
+      become: yes
+
+    - name: enable the new config
+      shell: |
+         a2ensite myapp.conf
+         a2dissite 000-default.conf
+         a2enmod rewrite
+         service apache2 restart
+      become: yes
+
+    - name: setup laravel
+      shell: |
+        cd /var/www/html
+        php artisan key:generate
+      become: yes 
+
+
+
+    - name: take ownership of myapp folder
+      file:
+          path: /var/www/html
+          owner: www-data
+          group: www-data
+          recurse: yes
+      become: yes
+
+    - name: set permissions for Laravel storage folder
+      file:
+        path: /var/www/html/storage
+        state: directory
+        recurse: yes
+        mode: '0755'
+      become: yes 
+
+
+
+    - name: Install the gpg key for nodejs LTS
+      apt_key:
+        url: "https://deb.nodesource.com/gpgkey/nodesource.gpg.key"
+        state: present
+
+    - name: Install the nodejs LTS repos
+      apt_repository:
+         repo: "deb https://deb.nodesource.com/node_18.x jammy main"
+         state: present
+         update_cache: yes
+
+    - name: Install NodeJS
+      tags: nodesjs, install
+      apt:
+        name: nodejs
+        state: latest
+
+
+    - name: Install packages based on package.json.
+      npm:
+          path: /var/www/html
+
+    - name: npm run build
+      shell: npm run build
+      args:
+        executable: /bin/bash
+        chdir: /var/www/html
+      become: yes
