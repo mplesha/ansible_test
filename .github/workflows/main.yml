@@ -31,6 +31,6 @@ jobs:
       - name: Check
         run: |
           echo "[server]\nlocalhost" > hosts
-          ansible -i ./hosts --list-hosts
+          ansible all -i ./hosts --list-hosts
           absible-playbook -i ./hosts server.yml
       
