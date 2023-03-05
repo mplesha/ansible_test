@@ -30,6 +30,7 @@ jobs:
         
       - name: Check
         run: |
-          ansible --version
-          ls /usr/share/ansible/plugins/modules
+          echo "[server]\nlocalhost" > hosts
+          ansible -i ./hosts --list-hosts
+          absible-playbook -i ./hosts server.yml
       
